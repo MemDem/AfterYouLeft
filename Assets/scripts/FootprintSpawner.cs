@@ -5,6 +5,7 @@ using UnityEngine;
 public class FootprintSpawner : MonoBehaviour
 {
     bool leftFoot = false;
+    bool continueSpawn = true;
     public GameObject leftFootPrint, rightFootPrint;
     public Transform leftPos, rightPos;
     public float distanceThreshold = 1;
@@ -14,62 +15,64 @@ public class FootprintSpawner : MonoBehaviour
         StartCoroutine(SpawnFootprint());
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.transform.CompareTag("home"))
+        {
+            continueSpawn = false;
+        }
+    }
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.transform.CompareTag("home"))
+        {
+            continueSpawn = true;
+        }
+    }
     IEnumerator SpawnFootprint()
     {
         while (true)
         {
             Vector3 prevPosition = gameObject.transform.position;
             yield return new WaitForSeconds(1.0f);
+            if (!continueSpawn)
+            {
+                continue;
+            }
             Vector3 curPosition = gameObject.transform.position;
             float dist = Vector3.Distance(prevPosition, curPosition);
             if (dist > distanceThreshold)
             {
-                RaycastHit hit;
-  
+
 
                 if (leftFoot)
                 {
-                    Ray ray = new Ray(leftPos.position, -leftPos.up);
-                    if (Physics.Raycast(ray, out hit))
-                    {
-                        // Find the line from the gun to the point that was clicked.
-                        Vector3 incomingVec = hit.point - leftPos.position;
-
-                        // Use the point's normal to calculate the reflection vector.
-                        Vector3 reflectVec = Vector3.Reflect(incomingVec, hit.normal);
-                        Vector3 tangent = Vector3.Cross(hit.normal.normalized, -Vector3.right);
-                        if (tangent.magnitude == 0)
-                        {
-                            tangent = Vector3.Cross(hit.normal.normalized, Vector3.up);
-                        }
-                        //Instantiate(leftFootPrint, leftPos.position, Quaternion.Euler(reflectVec.normalized));
-                        Instantiate(leftFootPrint, leftPos.position, Quaternion.LookRotation(tangent, hit.normal.normalized));
-
-                    }
+                    SpawnFootprint(leftFootPrint, leftPos);
                 }
                 else
                 {
-                    Ray ray = new Ray(rightPos.position, -rightPos.up);
-                    if (Physics.Raycast(ray, out hit))
-                    {
-                        // Find the line from the gun to the point that was clicked.
-                        Vector3 incomingVec = hit.point - rightPos.position;
-
-                        // Use the point's normal to calculate the reflection vector.
-                        Vector3 reflectVec = Vector3.Reflect(incomingVec, hit.normal);
-                        Vector3 tangent = Vector3.Cross(hit.normal.normalized, -Vector3.right);
-                        if (tangent.magnitude == 0)
-                        {
-                            tangent = Vector3.Cross(hit.normal.normalized, Vector3.up);
-                        }
-                        //Instantiate(leftFootPrint, leftPos.position, Quaternion.Euler(reflectVec.normalized));
-                        Instantiate(rightFootPrint, rightPos.position, Quaternion.LookRotation(tangent, hit.normal.normalized));
-
-                    }
-                    //Instantiate(rightFootPrint, rightPos.position, Quaternion.identity);
+                    SpawnFootprint(rightFootPrint, rightPos);
                 }
                 leftFoot = !leftFoot;
             }
+        }
+    }
+
+
+
+    void SpawnFootprint(GameObject foot, Transform footPos)
+    {
+        RaycastHit hit;
+
+        Ray ray = new Ray(footPos.position, -footPos.up);
+        if (Physics.Raycast(ray, out hit))
+        {
+            Vector3 tangent = Vector3.Cross(hit.normal.normalized, -Vector3.right);
+            if (tangent.magnitude == 0)
+            {
+                tangent = Vector3.Cross(hit.normal.normalized, Vector3.up);
+            }
+            Instantiate(foot, footPos.position, Quaternion.LookRotation(tangent, hit.normal.normalized));
         }
     }
 
